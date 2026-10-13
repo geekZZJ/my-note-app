@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 随手记录
 
-## Getting Started
+单人网页：想到写一句，可选标成身体 / 学习与工作 / 决定。数据进远程 MySQL，可一键导出 Markdown，给以后的 AI 读。
 
-First, run the development server:
+本机调试和服务器正式环境共用同一套远程数据库。
+
+## 环境变量
+
+复制 `.env.example` 为 `.env.local`（本机）或 `.env`（服务器）：
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+DATABASE_URL=mysql://user:password@your-server-host:3306/my_note
+APP_PASSWORD=change-me
+SESSION_SECRET=change-me-to-a-long-random-string
+PORT=3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 建表
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+在远程 MySQL 执行一次：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+mysql -h your-server-host -u user -p < scripts/schema.sql
+```
 
-## Learn More
+或用 Drizzle（同样需要 `DATABASE_URL`）：
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run db:push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 本机调试
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm ci
+cp .env.example .env.local   # 填入远程库与密码
+npm run dev
+```
 
-## Deploy on Vercel
+浏览器打开 `http://localhost:3000`。写入的数据就是正式库里的数据。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 服务器启动
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm ci
+# 配置 .env
+npm run build
+npm start
+```
+
+前面用现有的 Nginx / Caddy 反代到 `PORT`（默认 3000）即可。
+
+## 导出格式
+
+登录后点「导出 Markdown」，下载 zip：
+
+- `README.md`：标签含义与时区说明
+- `daily/YYYY-MM-DD.md`：按日拆开的记录，每条带时间和 id
+
+## 技术栈
+
+Next.js（App Router）+ Drizzle + MySQL。时区固定 `Asia/Shanghai`。

@@ -1,0 +1,18 @@
+-- 在远程 MySQL 中执行一次
+CREATE DATABASE IF NOT EXISTS my_note
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE my_note;
+
+CREATE TABLE IF NOT EXISTS entries (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  body TEXT NOT NULL,
+  tag VARCHAR(32) NULL,
+  happened_at DATETIME(3) NOT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_entries_happened_at (happened_at),
+  KEY idx_entries_tag (tag)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
