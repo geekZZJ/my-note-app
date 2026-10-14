@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import debounce from "lodash/debounce";
 import { useRouter } from "next/navigation";
 import type { SerializedEntry } from "@/lib/serialize";
 import { TAG_OPTIONS } from "@/lib/tags";
@@ -53,6 +54,12 @@ export function CaptureApp() {
   const [ready, setReady] = useState(false);
   const [tagFilter, setTagFilter] = useState<TagFilter>("");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const composing = useRef(false);
+  const applySearch = useMemo(
+    () => debounce((value: string) => setDebouncedQuery(value), 300),
+    [],
+  );
   const [draft, setDraft] = useState("");
   const [draftTag, setDraftTag] = useState<"" | "body" | "learn" | "decision">(
     "",
@@ -73,6 +80,10 @@ export function CaptureApp() {
     setReady(true);
   }, []);
 
+  useEffect(() => {
+    return () => applySearch.cancel();
+  }, [applySearch]);
+
   const load = useCallback(async () => {
     if (!date) return;
     setLoading(true);
@@ -80,7 +91,7 @@ export function CaptureApp() {
     try {
       const params = new URLSearchParams({ date });
       if (tagFilter) params.set("tag", tagFilter);
-      if (query.trim()) params.set("q", query.trim());
+      if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
       const res = await fetch(`/api/entries?${params.toString()}`);
       if (res.status === 401) {
         router.replace("/login");
@@ -101,7 +112,7 @@ export function CaptureApp() {
     } finally {
       setLoading(false);
     }
-  }, [date, tagFilter, query, router]);
+  }, [date, tagFilter, debouncedQuery, router]);
 
   useEffect(() => {
     if (!ready) return;
@@ -273,46 +284,22 @@ export function CaptureApp() {
             type="search"
             placeholder="搜索这一天"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setQuery(value);
+              if (!composing.current) applySearch(value);
+            }}
+            onCompositionStart={() => {
+              composing.current = true;
+              applySearch.cancel();
+            }}
+            onCompositionEnd={(e) => {
+              composing.current = false;
+              applySearch(e.currentTarget.value);
+            }}
           />
         </div>
       </section>
-
-      <form className={styles.composer} onSubmit={onCreate}>
-        <div className={styles.tagRow}>
-          {TAG_OPTIONS.map((opt) => (
-            <button
-              key={opt.label}
-              type="button"
-              className={
-                draftTag === opt.value ? styles.chipActive : styles.chip
-              }
-              onClick={() => setDraftTag(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className={styles.inputRow}>
-          <input
-            className={styles.composerInput}
-            placeholder="想到就写一句，回车保存"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            disabled={saving}
-            autoFocus
-          />
-          <button
-            className={styles.primary}
-            type="submit"
-            disabled={saving || !draft.trim()}
-          >
-            {saving ? "…" : "记下"}
-          </button>
-        </div>
-      </form>
-
-      {error ? <p className={styles.error}>{error}</p> : null}
 
       <section className={styles.timeline}>
         {loading ? <p className={styles.muted}>加载中…</p> : null}
@@ -370,9 +357,10 @@ export function CaptureApp() {
                         ))}
                       </select>
                       <input
-                        className={styles.dateInput}
+                        className={styles.timeInput}
                         type="datetime-local"
                         value={editTime}
+                        aria-label="发生时间"
                         onChange={(e) => setEditTime(e.target.value)}
                       />
                     </div>
@@ -425,6 +413,41 @@ export function CaptureApp() {
           })}
         </ul>
       </section>
+
+      <form className={styles.composer} onSubmit={onCreate}>
+        {error ? <p className={styles.error}>{error}</p> : null}
+        <div className={styles.tagRow}>
+          {TAG_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              className={
+                draftTag === opt.value ? styles.chipActive : styles.chip
+              }
+              onClick={() => setDraftTag(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className={styles.inputRow}>
+          <input
+            className={styles.composerInput}
+            placeholder="想到就写一句，回车保存"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={saving}
+            autoFocus
+          />
+          <button
+            className={styles.primary}
+            type="submit"
+            disabled={saving || !draft.trim()}
+          >
+            {saving ? "…" : "记下"}
+          </button>
+        </div>
+      </form>
     </main>
   );
 }
