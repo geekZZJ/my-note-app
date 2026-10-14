@@ -398,9 +398,35 @@
     font-size: 1.7rem;
   }
 
+  .toolbar,
+  .composer {
+    gap: 8px;
+  }
+
+  .filters,
+  .tagRow {
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .filters::-webkit-scrollbar,
+  .tagRow::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filters > *,
+  .tagRow > * {
+    flex-shrink: 0;
+  }
+
   .search {
     margin-left: 0;
-    width: 100%;
+    width: 8.5rem;
+    min-width: 8.5rem;
+    flex: 0 0 8.5rem;
   }
 
   .dateCenter {
