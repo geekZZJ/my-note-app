@@ -48,7 +48,7 @@ npm run dev
 
 ```bash
 git pull
-docker compose up -d --build
+docker-compose up -d --build
 ```
 
 这会在镜像里安装依赖并执行 `npm run build`，然后用新容器换掉旧容器。记录仍在原来的 MySQL 里。服务器本机端口是 `3002`，前面用现有的 Nginx / Caddy 反代到 `127.0.0.1:3002`。
@@ -56,7 +56,7 @@ docker compose up -d --build
 只改了 `.env`、代码没变时：
 
 ```bash
-docker compose up -d
+docker-compose up -d
 ```
 
 ## 导出格式
