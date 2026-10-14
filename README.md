@@ -9,11 +9,12 @@
 复制 `.env.example` 为 `.env.local`（本机）或 `.env`（服务器）：
 
 ```bash
-DATABASE_URL=mysql://user:password@your-server-host:3306/my_note
+DATABASE_URL=mysql://user:password@host.docker.internal:3306/my_note
 APP_PASSWORD=change-me
 SESSION_SECRET=change-me-to-a-long-random-string
-PORT=3000
 ```
+
+容器里的 `127.0.0.1` 是容器自己。MySQL 在宿主机上时，主机名用 `host.docker.internal`。
 
 ## 建表
 
@@ -39,16 +40,24 @@ npm run dev
 
 浏览器打开 `http://localhost:3000`。写入的数据就是正式库里的数据。
 
-## 服务器启动
+## 服务器部署
+
+服务器上安装 Docker，并把代码放在例如 `/opt/my-note-app`。在该目录创建 `.env`（不要提交），内容与上面的环境变量相同。
+
+第一次以及以后每次更新：
 
 ```bash
-npm ci
-# 配置 .env
-npm run build
-npm start
+git pull
+docker compose up -d --build
 ```
 
-前面用现有的 Nginx / Caddy 反代到 `PORT`（默认 3000）即可。
+这会在镜像里安装依赖并执行 `npm run build`，然后用新容器换掉旧容器。记录仍在原来的 MySQL 里。服务器本机端口是 `3002`，前面用现有的 Nginx / Caddy 反代到 `127.0.0.1:3002`。
+
+只改了 `.env`、代码没变时：
+
+```bash
+docker compose up -d
+```
 
 ## 导出格式
 
