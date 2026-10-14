@@ -64,7 +64,7 @@
   flex: 1;
   min-width: 0;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 0 4px;
@@ -76,7 +76,6 @@
   letter-spacing: -0.02em;
 }
 
-.dateInput,
 .select,
 .textarea,
 .search,
@@ -88,25 +87,44 @@
   padding: 10px 12px;
 }
 
-.dateInput {
+.datePicker {
+  position: relative;
   width: 36px;
   height: 36px;
-  padding: 0 8px;
+  flex: 0 0 36px;
+}
+
+.dateIcon {
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   background: #f4efe7;
-  color: transparent;
-  cursor: pointer;
+  color: #6d655d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
-.dateInput::-webkit-datetime-edit,
-.dateInput::-webkit-datetime-edit-fields-wrapper {
-  display: none;
+.dateIcon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.dateInput::-webkit-calendar-picker-indicator {
+.dateInput {
+  position: absolute;
+  inset: 0;
+  width: 36px;
+  height: 36px;
   margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
   cursor: pointer;
-  opacity: 0.7;
+  font-size: 16px;
 }
 
 .timeInput {
@@ -296,6 +314,42 @@
   color: #8a5a1a;
 }
 
+.tagMoney {
+  background: #e7f3ef;
+  color: #1d6450;
+}
+
+.moneyHint {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1d6450;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.amountField {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  background: #f7f3ec;
+  border-radius: 12px;
+  padding-right: 12px;
+  color: var(--muted);
+}
+
+.amountInput {
+  width: 6.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  min-height: 46px;
+  font-size: 16px;
+  padding: 10px 12px;
+}
+
 .itemBody {
   margin: 0;
   white-space: pre-wrap;
@@ -356,5 +410,19 @@
 
   .dateCenter strong {
     font-size: 1rem;
+  }
+
+  .inputRow:has(.amountField) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .amountField {
+    grid-column: 1 / -1;
+  }
+
+  .amountInput {
+    width: 100%;
+    flex: 1;
   }
 }

@@ -3,11 +3,20 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import debounce from "lodash/debounce";
 import { useRouter } from "next/navigation";
+import type { EntryTag } from "@/db/schema";
 import type { SerializedEntry } from "@/lib/serialize";
-import { TAG_OPTIONS } from "@/lib/tags";
+import { formatMoneyBody, isEntryTag, TAG_OPTIONS } from "@/lib/tags";
 import styles from "./CaptureApp.module.css";
 
-type TagFilter = "" | "none" | "body" | "learn" | "decision";
+type DraftTag = EntryTag | "";
+type TagFilter = "" | "none" | EntryTag;
+
+const TAG_BADGE: Record<EntryTag, string> = {
+  body: styles.tagBody,
+  learn: styles.tagLearn,
+  decision: styles.tagDecision,
+  money: styles.tagMoney,
+};
 
 function todayLocal(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -43,9 +52,9 @@ function formatHeading(date: string): string {
 const FILTERS: Array<{ value: TagFilter; label: string }> = [
   { value: "", label: "全部" },
   { value: "none", label: "未分类" },
-  { value: "body", label: "身体" },
-  { value: "learn", label: "学习与工作" },
-  { value: "decision", label: "决定" },
+  ...TAG_OPTIONS.flatMap((opt) =>
+    opt.value ? [{ value: opt.value, label: opt.label }] : [],
+  ),
 ];
 
 export function CaptureApp() {
@@ -61,18 +70,17 @@ export function CaptureApp() {
     [],
   );
   const [draft, setDraft] = useState("");
-  const [draftTag, setDraftTag] = useState<"" | "body" | "learn" | "decision">(
-    "",
-  );
+  const [draftTag, setDraftTag] = useState<DraftTag>("");
+  const [moneyAmount, setMoneyAmount] = useState("");
+  const [moneyReason, setMoneyReason] = useState("");
+  const amountRef = useRef<HTMLInputElement>(null);
   const [entries, setEntries] = useState<SerializedEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editBody, setEditBody] = useState("");
-  const [editTag, setEditTag] = useState<"" | "body" | "learn" | "decision">(
-    "",
-  );
+  const [editTag, setEditTag] = useState<DraftTag>("");
   const [editTime, setEditTime] = useState("");
 
   useEffect(() => {
@@ -83,6 +91,10 @@ export function CaptureApp() {
   useEffect(() => {
     return () => applySearch.cancel();
   }, [applySearch]);
+
+  useEffect(() => {
+    if (draftTag === "money") amountRef.current?.focus();
+  }, [draftTag]);
 
   const load = useCallback(async () => {
     if (!date) return;
@@ -121,7 +133,17 @@ export function CaptureApp() {
 
   async function onCreate(event: FormEvent) {
     event.preventDefault();
-    const body = draft.trim();
+    let body = "";
+    if (draftTag === "money") {
+      try {
+        body = formatMoneyBody(moneyAmount, moneyReason);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "写下花了多少、为什么花");
+        return;
+      }
+    } else {
+      body = draft.trim();
+    }
     if (!body || saving) return;
     setSaving(true);
     setError("");
@@ -143,6 +165,8 @@ export function CaptureApp() {
         return;
       }
       setDraft("");
+      setMoneyAmount("");
+      setMoneyReason("");
       // 新记录按今天时间写入；若当前在看别的日期，跳回今天
       const today = todayLocal();
       if (date !== today) {
@@ -160,7 +184,7 @@ export function CaptureApp() {
   function startEdit(entry: SerializedEntry) {
     setEditingId(entry.id);
     setEditBody(entry.body);
-    setEditTag((entry.tag as "" | "body" | "learn" | "decision") || "");
+    setEditTag(isEntryTag(entry.tag) ? entry.tag : "");
     setEditTime(entry.happenedAtLocal);
   }
 
@@ -212,6 +236,15 @@ export function CaptureApp() {
   }
 
   const heading = useMemo(() => formatHeading(date), [date]);
+  const moneyMissing =
+    !loading &&
+    date === todayLocal() &&
+    tagFilter === "" &&
+    !debouncedQuery.trim() &&
+    entries.length > 0 &&
+    !entries.some((entry) => entry.tag === "money");
+  const moneyReady =
+    moneyAmount.trim().length > 0 && moneyReason.trim().length > 0;
 
   return (
     <main className={styles.page}>
@@ -242,13 +275,23 @@ export function CaptureApp() {
           </button>
           <div className={styles.dateCenter}>
             <strong>{heading || "…"}</strong>
-            <input
-              className={styles.dateInput}
-              type="date"
-              value={date}
-              aria-label="选择日期"
-              onChange={(e) => setDate(e.target.value)}
-            />
+            <label className={styles.datePicker}>
+              <span className={styles.dateIcon} aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18">
+                  <rect x="3.5" y="5" width="17" height="15.5" rx="2" />
+                  <path d="M3.5 10h17" />
+                  <path d="M8 3.5v3" />
+                  <path d="M16 3.5v3" />
+                </svg>
+              </span>
+              <input
+                className={styles.dateInput}
+                type="date"
+                value={date}
+                aria-label="选择日期"
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </label>
           </div>
           <button
             type="button"
@@ -307,7 +350,7 @@ export function CaptureApp() {
           <div className={styles.empty}>
             <p className={styles.emptyTitle}>这一天还是空白</p>
             <p className={styles.muted}>
-              身体、学习与工作、做过的决定，想到一句就记。不选标签也能存。
+              身体、学习与工作、做过的决定、今天的钱，想到一句就记。不选标签也能存。
             </p>
           </div>
         ) : null}
@@ -317,14 +360,9 @@ export function CaptureApp() {
               ? TAG_OPTIONS.find((t) => t.value === entry.tag)?.label ||
                 "未分类"
               : "未分类";
-            const tagClass =
-              entry.tag === "body"
-                ? styles.tagBody
-                : entry.tag === "learn"
-                  ? styles.tagLearn
-                  : entry.tag === "decision"
-                    ? styles.tagDecision
-                    : styles.tagNone;
+            const tagClass = isEntryTag(entry.tag)
+              ? TAG_BADGE[entry.tag]
+              : styles.tagNone;
             const isEditing = editingId === entry.id;
             return (
               <li key={entry.id} className={styles.item}>
@@ -340,15 +378,7 @@ export function CaptureApp() {
                       <select
                         className={styles.select}
                         value={editTag}
-                        onChange={(e) =>
-                          setEditTag(
-                            e.target.value as
-                              | ""
-                              | "body"
-                              | "learn"
-                              | "decision",
-                          )
-                        }
+                        onChange={(e) => setEditTag(e.target.value as DraftTag)}
                       >
                         {TAG_OPTIONS.map((opt) => (
                           <option key={opt.label} value={opt.value}>
@@ -416,6 +446,15 @@ export function CaptureApp() {
 
       <form className={styles.composer} onSubmit={onCreate}>
         {error ? <p className={styles.error}>{error}</p> : null}
+        {moneyMissing && draftTag !== "money" ? (
+          <button
+            type="button"
+            className={styles.moneyHint}
+            onClick={() => setDraftTag("money")}
+          >
+            今天的钱还没记：花了多少、为什么花
+          </button>
+        ) : null}
         <div className={styles.tagRow}>
           {TAG_OPTIONS.map((opt) => (
             <button
@@ -430,23 +469,56 @@ export function CaptureApp() {
             </button>
           ))}
         </div>
-        <div className={styles.inputRow}>
-          <input
-            className={styles.composerInput}
-            placeholder="想到就写一句，回车保存"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            disabled={saving}
-            autoFocus
-          />
-          <button
-            className={styles.primary}
-            type="submit"
-            disabled={saving || !draft.trim()}
-          >
-            {saving ? "…" : "记下"}
-          </button>
-        </div>
+        {draftTag === "money" ? (
+          <div className={styles.inputRow}>
+            <label className={styles.amountField}>
+              <input
+                ref={amountRef}
+                className={styles.amountInput}
+                inputMode="decimal"
+                placeholder="花了多少"
+                aria-label="花了多少"
+                value={moneyAmount}
+                onChange={(e) => setMoneyAmount(e.target.value)}
+                disabled={saving}
+              />
+              <span>元</span>
+            </label>
+            <input
+              className={styles.composerInput}
+              placeholder="为什么花"
+              aria-label="为什么花"
+              value={moneyReason}
+              onChange={(e) => setMoneyReason(e.target.value)}
+              disabled={saving}
+            />
+            <button
+              className={styles.primary}
+              type="submit"
+              disabled={saving || !moneyReady}
+            >
+              {saving ? "…" : "记下"}
+            </button>
+          </div>
+        ) : (
+          <div className={styles.inputRow}>
+            <input
+              className={styles.composerInput}
+              placeholder="想到就写一句，回车保存"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              disabled={saving}
+              autoFocus
+            />
+            <button
+              className={styles.primary}
+              type="submit"
+              disabled={saving || !draft.trim()}
+            >
+              {saving ? "…" : "记下"}
+            </button>
+          </div>
+        )}
       </form>
     </main>
   );

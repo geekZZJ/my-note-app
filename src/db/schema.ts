@@ -6,7 +6,7 @@ import {
   varchar,
 } from "drizzle-orm/mysql-core";
 
-export const TAGS = ["body", "learn", "decision"] as const;
+export const TAGS = ["body", "learn", "decision", "money"] as const;
 export type EntryTag = (typeof TAGS)[number];
 
 export const entries = mysqlTable("entries", {
