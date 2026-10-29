@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import debounce from "lodash/debounce";
 import { useRouter } from "next/navigation";
 import type { EntryTag } from "@/db/schema";
 import type { SerializedEntry } from "@/lib/serialize";
@@ -47,6 +46,16 @@ function formatHeading(date: string): string {
     timeZone: "UTC",
   }).format(utc);
   return `${m}月${d}日 ${weekday}`;
+}
+
+function debounce<T extends (...args: never[]) => void>(fn: T, wait: number) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const debounced = (...args: Parameters<T>) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), wait);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
 }
 
 const FILTERS: Array<{ value: TagFilter; label: string }> = [
@@ -254,6 +263,9 @@ export function CaptureApp() {
           <h1 className={styles.title}>随手记录</h1>
         </div>
         <div className={styles.headerActions}>
+          <a className={styles.linkButton} href="/ask">
+            问问
+          </a>
           <a className={styles.linkButton} href="/api/export">
             导出
           </a>

@@ -86,6 +86,35 @@ function buildDailyMarkdown(date: string, dayEntries: Entry[]): string {
   return lines.join("\n");
 }
 
+export function buildCorpusMarkdown(allEntries: Entry[]): string {
+  if (allEntries.length === 0) {
+    return "还没有任何记录。";
+  }
+
+  const byDate = new Map<string, Entry[]>();
+  for (const entry of allEntries) {
+    const date = dateStringOf(entry.happenedAt);
+    const list = byDate.get(date) ?? [];
+    list.push(entry);
+    byDate.set(date, list);
+  }
+
+  const parts = [buildReadme().trim(), ""];
+  for (const date of [...byDate.keys()].sort()) {
+    const dayEntries = (byDate.get(date) ?? []).sort(
+      (a, b) => a.happenedAt.getTime() - b.happenedAt.getTime(),
+    );
+    parts.push(buildDailyMarkdown(date, dayEntries).trim(), "");
+  }
+
+  let corpus = parts.join("\n");
+  const maxChars = 100_000;
+  if (corpus.length > maxChars) {
+    corpus = `较早的记录已省略，下面是最近的部分。\n\n${corpus.slice(-maxChars)}`;
+  }
+  return corpus;
+}
+
 export async function buildMarkdownZip(allEntries: Entry[]): Promise<Buffer> {
   const zip = new JSZip();
   zip.file("README.md", buildReadme());
