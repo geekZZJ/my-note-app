@@ -1,0 +1,12 @@
+version: "3.7"
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

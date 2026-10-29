@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   createSessionToken,
   getAppPassword,
+  requestIsHttps,
   sessionCookieOptions,
 } from "@/lib/auth";
 
@@ -20,6 +21,6 @@ export async function POST(request: NextRequest) {
 
   const token = await createSessionToken();
   const response = NextResponse.json({ ok: true });
-  response.cookies.set(sessionCookieOptions(token));
+  response.cookies.set(sessionCookieOptions(token, requestIsHttps(request)));
   return response;
 }

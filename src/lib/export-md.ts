@@ -23,6 +23,7 @@ function buildReadme(): string {
 - **身体**：训练、睡眠、饮食、身体感受。
 - **学习与工作**：学到的东西、做了什么、进度。
 - **决定**：你自己写下的选择与理由（不是建议，不是 AI 的结论）。
+- **钱**：这一天花了多少、为什么花。
 
 ## 目录
 
@@ -39,6 +40,7 @@ function buildDailyMarkdown(date: string, dayEntries: Entry[]): string {
     body: [],
     learn: [],
     decision: [],
+    money: [],
   };
 
   for (const entry of dayEntries) {
@@ -54,6 +56,7 @@ function buildDailyMarkdown(date: string, dayEntries: Entry[]): string {
     { title: TAG_LABELS.body, items: byTag.body },
     { title: TAG_LABELS.learn, items: byTag.learn },
     { title: TAG_LABELS.decision, items: byTag.decision },
+    { title: TAG_LABELS.money, items: byTag.money },
   ];
 
   const lines = [

@@ -44,13 +44,21 @@ export async function isAuthenticated() {
   return verifySessionToken(jar.get(SESSION_COOKIE)?.value);
 }
 
-export function sessionCookieOptions(token: string) {
+export function requestIsHttps(request: NextRequest) {
+  const forwarded = request.headers.get("x-forwarded-proto");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() === "https";
+  }
+  return request.nextUrl.protocol === "https:";
+}
+
+export function sessionCookieOptions(token: string, secure: boolean) {
   return {
     name: SESSION_COOKIE,
     value: token,
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   };
